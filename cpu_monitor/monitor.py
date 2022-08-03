@@ -6,14 +6,41 @@ class Application(tk.Tk):
 
     def __init__(self):
         tk.Tk.__init__(self)
-        self.geometry('600x600')
+        self.geometry('450x450')
         self.resizable(width = True, height = True)
         self.title('CPU MONITOR')
-        self.attributes('-topmost', True)
+        self.on_top = tk.IntVar()
+        self.show_total = tk.IntVar(value = 1)
+        self.show_cores = tk.IntVar(value = 1)
+        
+        self.tab_control = ttk.Notebook(self)
+        self.main_tab = ttk.Frame(self.tab_control)
+        self.cpu_info_tab = ttk.Frame(self.tab_control)
+        self.settings_tab = ttk.Frame(self.tab_control)
+        self.tab_control.add(self.main_tab, text = 'CPU Usage')
+        self.tab_control.add(self.cpu_info_tab, text = 'CPU Info')
+        self.tab_control.add(self.settings_tab, text = 'Settings')
+        self.tab_control.pack(expand = 1, fill = tk.BOTH)
+
+        self.cpu_info_frame = ttk.Labelframe(self.cpu_info_tab, text = 'CPU INFO', padding = 5)
+        self.cpu_info_frame.grid(sticky = 'w')
+
+        self.total_frame = ttk.LabelFrame(self.main_tab, text = 'TOTAL CPU USAGE', padding = 5)
+        self.total_frame.grid(sticky = 'w')
+
+        self.main_frame = ttk.Labelframe(self.main_tab, text = 'CPU USAGE', padding = 5)
+        self.main_frame.grid(sticky = 'w')
+
+        self.window_settings_frame = ttk.Labelframe(self.settings_tab, text = 'WINDOW SETTINGS')
+        self.window_settings_frame.pack(fill = tk.X)
+
+        self.interface_settings_frame = ttk.Labelframe(self.settings_tab, text = 'INTERFACE SETTINGS')
+        self.interface_settings_frame.pack(fill = tk.X)
 
         self.cpu_info = Get_cpu_info()
         self.ph_cores_count = self.cpu_info.ph_cpu_count
         self.lg_cores_count = self.cpu_info.lg_cpu_count
+        self.cpu_freq = self.cpu_info.cpu_freq
         self.usage_bars = {}
         self.usage_info = {}
 
@@ -21,36 +48,55 @@ class Application(tk.Tk):
 
         self.update_usage_bars()
 
+    def save_settings(self):
+        self.attributes('-topmost', self.on_top.get())
+
+        if self.show_total.get():
+            self.total_frame.grid()
+        else:
+            self.total_frame.grid_remove()
+
+        if self.show_cores.get():
+            self.main_frame.grid()
+        else:
+            self.main_frame.grid_remove()
 
     def set_ui(self):
-        top_frame = ttk.Labelframe(text = 'CPU INFO', padding = 5)
-        top_frame.pack(fill = tk.X)
+        
+        label_ph_cores_count = ttk.Label(self.cpu_info_frame, text = f'Phisycal cores - {self.ph_cores_count}')
+        label_lg_cores_count = ttk.Label(self.cpu_info_frame, text = f'Logic cores - {self.lg_cores_count}')
+        label_ph_cores_count.grid(column = 0, row = 1, padx = 5)
+        label_lg_cores_count.grid(column = 1, row = 1)
 
-        label_ph_cores_count = ttk.Label(top_frame, text = f'Phisycal cores - {self.ph_cores_count}')
-        label_lg_cores_count = ttk.Label(top_frame, text = f'Logic cores - {self.lg_cores_count}')
-        label_ph_cores_count.grid(column = 1, row = 1, padx = 5)
-        label_lg_cores_count.grid(column = 2, row = 1, padx = 15)
+        label_cpu_freq = ttk.Label(self.cpu_info_frame, text = f'CPU Freq - {self.cpu_freq}')
+        label_cpu_freq.grid(column = 0, row = 2, pady = 5)
+
+        check_window_on_top = ttk.Checkbutton(self.window_settings_frame, text = 'Always on top', variable = self.on_top)
+        check_window_on_top.pack(anchor = 'w')
+
+        check_show_total = ttk.Checkbutton(self.interface_settings_frame, text = 'Show total CPU usage', variable = self.show_total)
+        check_show_total.pack(anchor = 'w')
+
+        check_show_cores = ttk.Checkbutton(self.interface_settings_frame, text = 'Show CPU cores usage', variable = self.show_cores)
+        check_show_cores.pack(anchor = 'w')
+
+        save_setting_button = ttk.Button(self.settings_tab, text = 'Save', command = self.save_settings)
+        save_setting_button.pack()
 
         self.set_usage_bars()
 
-    
     def set_usage_bars(self):
-        total_frame = ttk.LabelFrame(text = 'TOTAL CPU USAGE', padding = 5)
-        total_frame.pack(fill = tk.X)
-
-        main_frame = ttk.Labelframe(text = 'CPU USAGE', padding = 5)
-        main_frame.pack(fill = tk.X)
-
+        
         for index in range(self.lg_cores_count):
-            self.usage_info[index] = ttk.Label(master = main_frame,text = f'Core {index + 1} usage is 0%:')
-            self.usage_bars[index] = ttk.Progressbar(master = main_frame, value = 0, length = 400)
-            self.usage_info[index].pack(anchor = 'w', padx = 7, pady = 5)
-            self.usage_bars[index].pack(anchor = 'w', padx = 8)
+            self.usage_info[index] = ttk.Label(master = self.main_frame,text = f'Core {index + 1} usage is 0%:')
+            self.usage_bars[index] = ttk.Progressbar(master = self.main_frame, value = 0, length = 400)
+            self.usage_info[index].pack(anchor = 'w')
+            self.usage_bars[index].pack(anchor = 'w')
 
-        self.usage_info[-1] = ttk.Label(master = total_frame, text = f'Total CPU usage is 0%:')
-        self.usage_bars[-1] = ttk.Progressbar(master = total_frame, value = 0, length = 400)
-        self.usage_info[-1].pack(anchor = 'w', padx = 7)
-        self.usage_bars[-1].pack(anchor = 'w', padx= 7)
+        self.usage_info[-1] = ttk.Label(master = self.total_frame, text = f'Total CPU usage is 0%:')
+        self.usage_bars[-1] = ttk.Progressbar(master = self.total_frame, value = 0, length = 400)
+        self.usage_info[-1].pack(anchor = 'w')
+        self.usage_bars[-1].pack(anchor = 'w')
 
     def update_usage_bars(self):
         usage = self.cpu_info.get_cpu_percent()
