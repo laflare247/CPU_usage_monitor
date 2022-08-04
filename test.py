@@ -1,3 +1,7 @@
-import psutil
+import GPUtil
+from time import sleep
 
-print(psutil.cpu_freq())
+gpu = GPUtil.getGPUs()
+
+for i in gpu:
+    print(i.load*100)
